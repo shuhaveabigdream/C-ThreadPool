@@ -7,71 +7,71 @@
 
 using namespace std;
 
-ThreadPool_t::ThreadPool_t(int QueSize,int ThreadCount):que_size(QueSize),thread_count(ThreadCount){
-    //队列定长
-    Queue=new vector<Task_t*>(que_size);
-    //初始化锁
-    if(pthread_mutex_init(&mutex,NULL)!=0||pthread_cond_init(&cond,NULL)!=0){
-        cout<<"锁初始化失败！"<<endl;
-        throw;
-    };
-    //初始化线程句柄
-    threads=new pthread_t[thread_count];
-    head=tail=count=running_threads=0;
-
-    //开启工作线程
-    for(int i=0;i<thread_count;i++){
-        if(pthread_create(&threads[i],NULL,threadpool_thread,(void*)this)!=0){
-            cout<<"线程创建失败，线程ID:"<<i<<endl;
+    ThreadPool_t::ThreadPool_t(int QueSize,int ThreadCount):que_size(QueSize),thread_count(ThreadCount){
+        //队列定长
+        Queue=new vector<Task_t*>(que_size);
+        //初始化锁
+        if(pthread_mutex_init(&mutex,NULL)!=0||pthread_cond_init(&cond,NULL)!=0){
+            cout<<"锁初始化失败！"<<endl;
             throw;
+        };
+        //初始化线程句柄
+        threads=new pthread_t[thread_count];
+        head=tail=count=running_threads=0;
+
+        //开启工作线程
+        for(int i=0;i<thread_count;i++){
+            if(pthread_create(&threads[i],NULL,threadpool_thread,(void*)this)!=0){
+                cout<<"线程创建失败，线程ID:"<<i<<endl;
+                throw;
+            }
+            running_threads++;
         }
-        running_threads++;
     }
-}
 
 //添加任务
 //添加double check
 //收到终止命令后，add不再执行添加工作。
-int ThreadPool_t::threadpool_add(Task_t *t){
-    int status=0;
+    int ThreadPool_t::threadpool_add(Task_t *t){
+        int status=0;
 
-    //NULL作为终止线程任务，不允许手动添加，仅允许通过STOP
-    if(t==NULL)
-    return threadpool_invalid;
-    
-    //第一次确认
-    if(count<que_size){
-        if(pthread_mutex_lock(&mutex)!=0){
-            return threadpool_lock_failure;
-        }
-
-        int next=(tail+1)%que_size;//确定tail的更新值
+        //NULL作为终止线程任务，不允许手动添加，仅允许通过STOP
+        if(t==NULL||order_Stop||Status()==poolstop)
+        return threadpool_invalid;
         
-        do{
-            //第二次确认
-            if(count==que_size){
-                status=threadpool_queue_full;
-                break;
+        //第一次确认
+        if(count<que_size){
+            if(pthread_mutex_lock(&mutex)!=0){
+                return threadpool_lock_failure;
             }
-            //开始添加任务
-            (*Queue)[tail]=t;
-            tail=next;
-            count++;
+
+            int next=(tail+1)%que_size;//确定tail的更新值
             
-            t->SetStatus(waitthread);//此时状态为等待
+            do{
+                //第二次确认
+                if(count==que_size){
+                    status=threadpool_queue_full;
+                    break;
+                }
+                //开始添加任务
+                (*Queue)[tail]=t;
+                tail=next;
+                count++;
+                
+                t->SetStatus(waitthread);//此时状态为等待
 
-            //广播条件变量
-            if(pthread_cond_signal(&cond) != 0) {
-                status=threadpool_lock_failure;
-            }
-        }while(0);
+                //广播条件变量
+                if(pthread_cond_signal(&cond) != 0) {
+                    status=threadpool_lock_failure;
+                }
+            }while(0);
 
-        if(pthread_mutex_unlock(&mutex)!=0)status=threadpool_lock_failure;
-         return status;
-    }else{
-        return threadpool_queue_full;
+            if(pthread_mutex_unlock(&mutex)!=0)status=threadpool_lock_failure;
+            return status;
+        }else{
+            return threadpool_queue_full;
+        }
     }
-}
 
 
 Task_t* ThreadPool_t::getTask(){
