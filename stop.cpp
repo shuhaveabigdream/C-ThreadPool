@@ -33,15 +33,15 @@ int main(){
     }
     MyTask *tasks[1000];
 
-    for(int i=0;i<500;i++){
+    for(int i=0;i<1000;i++){
         tasks[i]=new MyTask((void*)(x+i));
         while(t->threadpool_add(tasks[i])!=0);
     }
-    usleep(20);
-     for(int i=500;i<1000;i++){
-        tasks[i]=new MyTask((void*)(x+i));
-        while(t->threadpool_add(tasks[i])!=0);
-    }
+    // usleep(20);
+    //  for(int i=500;i<1000;i++){
+    //     tasks[i]=new MyTask((void*)(x+i));
+    //     while(t->threadpool_add(tasks[i])!=0);
+    // }
     t->stop();
     cout<<t->Status()<<endl;
     delete t;

@@ -7,10 +7,6 @@
 
 using namespace std;
 
-
-static bool Stop;//全局终止标志
-
-
 ThreadPool_t::ThreadPool_t(int QueSize,int ThreadCount):que_size(QueSize),thread_count(ThreadCount){
     //队列定长
     Queue=new vector<Task_t*>(que_size);
@@ -140,9 +136,9 @@ void ThreadPool_t::stop(){
 
 //这里需要一个stop方法
 ThreadPool_t::~ThreadPool_t(){
-    for(int i=0;i<thread_count;i++)pthread_join(threads[i],NULL);
+    if (Status()!=poolstop)stop();
     delete threads;
-     delete Queue;
+    delete Queue;
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 }

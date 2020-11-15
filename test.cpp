@@ -1,5 +1,6 @@
 #include <iostream>
 #include <time.h>
+#include <ctime>
 #include <unistd.h>
 #include "pool.h"
 
@@ -9,8 +10,6 @@ public:
     MyTask(void*t):Task_t(t){}
     void* run(){
         int *id=(int*)args; 
-        printf("I am working Id:%d\n",id[0]);
-        
         ans=id[1]*id[2];
         return (void*)&ans;
     }
@@ -19,33 +18,38 @@ public:
     }
 };
 
+clock_t start,end;
+
 int main(){
     srand(time(NULL));
-    ThreadPool_t *t=new ThreadPool_t(10,4);
-    int x[1000][3];
+    ThreadPool_t *t=new ThreadPool_t(10000,4);
+    int x[100000][3];
 
-    for(int i=0;i<1000;i++){
+    for(int i=0;i<100000;i++){
         x[i][0]=i+1;
-        x[i][1]=rand()%20;
-        x[i][2]=rand()%20;
+        x[i][1]=rand()%2000;
+        x[i][2]=rand()%2000;
     }
-    MyTask *tasks[100];
-
-    for(int i=0;i<100;i++){
+    MyTask *tasks[100000];
+    start=clock();
+    for(int i=0;i<100000;i++){
         tasks[i]=new MyTask((void*)(x+i));
         while(t->threadpool_add(tasks[i])!=0);
     }
-
+    end=clock();
+    
     //审查返回值
-    for(int i=0;i<100;i++){
-        while(tasks[i]->Status()!=finished);
-        int *params=(int*)tasks[i]->args;
-        printf("task %d:params: %2d*%2d=%d\n",i,params[1],params[2],*(int*)tasks[i]->callback);
-        delete tasks[i];
-    }
+    // for(int i=0;i<100000;i++){
+    //     while(tasks[i]->Status()!=finished);
+    //     int *params=(int*)tasks[i]->args;
+    //     printf("task %d:params: %2d*%2d=%d\n",i,params[1],params[2],*(int*)tasks[i]->callback);
+    //     delete tasks[i];
+    // }
 
-    sleep(1);
     t->stop();
+    double endtime=(double)(end-start)/CLOCKS_PER_SEC;
+
+    std::cout<<"total time conusmed:"<<endtime<<"s"<<std::endl;
     delete t;
     return -1;
 }
