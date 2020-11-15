@@ -134,7 +134,6 @@ void ThreadPool_t::stop(){
     stus=poolstop;//更新线程池状态
 }
 
-//这里需要一个stop方法
 ThreadPool_t::~ThreadPool_t(){
     if (Status()!=poolstop)stop();
     delete threads;
